@@ -35,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private var btnBack: ImageButton? = null
     private var btnForward: ImageButton? = null
     private var btnRefresh: ImageButton? = null
+    private var btnQrScan: ImageButton? = null
     private var btnHome: ImageButton? = null
     private var btnTabs: ImageButton? = null
     private var btnMenu: ImageButton? = null
@@ -211,6 +212,7 @@ class MainActivity : AppCompatActivity() {
         btnBack = findViewById(R.id.btnBack)
         btnForward = findViewById(R.id.btnForward)
         btnRefresh = findViewById(R.id.btnRefresh)
+        btnQrScan = findViewById(R.id.btnQrScan)
         btnHome = findViewById(R.id.btnHome)
         btnTabs = findViewById(R.id.btnTabs)
         btnMenu = findViewById(R.id.btnMenu)
@@ -533,6 +535,10 @@ class MainActivity : AppCompatActivity() {
             webView?.reload()
         }
 
+        btnQrScan?.setOnClickListener {
+            openQRScanner()
+        }
+
         btnHome?.setOnClickListener {
             currentPageIsNhp = false
             nhpIndicator?.visibility = View.GONE
@@ -783,6 +789,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showMenu() {
         val menuItems = arrayOf(
+            "📷 Scan QR Code",
             "🔗 Share Page",
             "⭐ Add Bookmark",
             "📚 View Bookmarks",
@@ -796,16 +803,22 @@ class MainActivity : AppCompatActivity() {
         builder.setTitle("Menu")
         builder.setItems(menuItems) { _, which ->
             when (which) {
-                0 -> shareCurrentPage()
-                1 -> addBookmark()
-                2 -> showBookmarks()
-                3 -> copyCurrentUrl()
-                4 -> showFindInPage()
-                5 -> toggleDesktopMode()
-                6 -> showAboutDialog()
+                0 -> openQRScanner()
+                1 -> shareCurrentPage()
+                2 -> addBookmark()
+                3 -> showBookmarks()
+                4 -> copyCurrentUrl()
+                5 -> showFindInPage()
+                6 -> toggleDesktopMode()
+                7 -> showAboutDialog()
             }
         }
         builder.show()
+    }
+
+    private fun openQRScanner() {
+        val intent = Intent(this, QRScanActivity::class.java)
+        startActivity(intent)
     }
 
     private fun shareCurrentPage() {

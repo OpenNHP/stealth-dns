@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0b1020">
+
+    <!-- Camera Preview -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Scan Frame Container -->
+    <FrameLayout
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:layout_gravity="center">
+        
+        <!-- Scan Frame Overlay -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/scan_frame" />
+        
+        <!-- Animated Scan Line -->
+        <View
+            android:id="@+id/scanLine"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_gravity="top"
+            android:layout_marginHorizontal="8dp"
+            android:background="@drawable/scan_line" />
+    </FrameLayout>
+
+    <!-- Top Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical"
+        android:background="@drawable/gradient_top">
+
+        <ImageButton
+            android:id="@+id/closeButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:contentDescription="Close"
+            app:tint="@android:color/white" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Scan QR Code"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <ImageButton
+            android:id="@+id/flashButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_flash_off"
+            android:contentDescription="Toggle flash"
+            app:tint="@android:color/white" />
+    </LinearLayout>
+
+    <!-- Bottom Info Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="@drawable/gradient_bottom">
+
+        <TextView
+            android:id="@+id/instructionText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Point camera at NHP login QR code"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Scanning..."
+            android:textColor="#29b6f6"
+            android:textSize="14sp"
+            android:gravity="center" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            android:indeterminateTint="#29b6f6" />
+    </LinearLayout>
+
+    <!-- Result Confirmation Dialog -->
+    <LinearLayout
+        android:id="@+id/resultContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="32dp"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="@drawable/dialog_background"
+        android:elevation="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/resultTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="NHP Login Request"
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/resultMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Confirm to authenticate and login?"
+            android:textColor="#b0b0b0"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/cancelButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="Cancel"
+                android:textColor="@android:color/white"
+                android:background="@drawable/button_secondary" />
+
+            <Button
+                android:id="@+id/confirmButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Confirm"
+                android:textColor="#0b1020"
+                android:background="@drawable/button_primary" />
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>
+

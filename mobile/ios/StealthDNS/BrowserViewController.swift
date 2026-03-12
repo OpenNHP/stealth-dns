@@ -23,6 +23,7 @@ class BrowserViewController: UIViewController {
     private var backButton: UIButton!
     private var forwardButton: UIButton!
     private var refreshButton: UIButton!
+    private var qrScanButton: UIButton!
     private var homeButton: UIButton!
     private var tabsButton: UIButton!
     private var menuButton: UIButton!
@@ -162,6 +163,11 @@ class BrowserViewController: UIViewController {
         refreshButton.addTarget(self, action: #selector(refreshTapped), for: .touchUpInside)
         urlBarContainer.addSubview(refreshButton)
         
+        // QR Scan Button (right of refresh)
+        qrScanButton = createNavButton(systemName: "qrcode.viewfinder")
+        qrScanButton.addTarget(self, action: #selector(qrScanTapped), for: .touchUpInside)
+        urlBarContainer.addSubview(qrScanButton)
+        
         // NHP Indicator
         nhpIndicatorView = UIView()
         nhpIndicatorView.backgroundColor = nhpGreen.withAlphaComponent(0.15)
@@ -250,10 +256,15 @@ class BrowserViewController: UIViewController {
             urlTextField.trailingAnchor.constraint(equalTo: urlFieldContainer.trailingAnchor, constant: -16),
             urlTextField.centerYAnchor.constraint(equalTo: urlFieldContainer.centerYAnchor),
             
-            refreshButton.trailingAnchor.constraint(equalTo: urlBarContainer.trailingAnchor, constant: -12),
+            refreshButton.trailingAnchor.constraint(equalTo: qrScanButton.leadingAnchor, constant: -4),
             refreshButton.centerYAnchor.constraint(equalTo: urlBarContainer.centerYAnchor),
-            refreshButton.widthAnchor.constraint(equalToConstant: 40),
-            refreshButton.heightAnchor.constraint(equalToConstant: 40),
+            refreshButton.widthAnchor.constraint(equalToConstant: 36),
+            refreshButton.heightAnchor.constraint(equalToConstant: 36),
+            
+            qrScanButton.trailingAnchor.constraint(equalTo: urlBarContainer.trailingAnchor, constant: -12),
+            qrScanButton.centerYAnchor.constraint(equalTo: urlBarContainer.centerYAnchor),
+            qrScanButton.widthAnchor.constraint(equalToConstant: 36),
+            qrScanButton.heightAnchor.constraint(equalToConstant: 36),
             
             nhpIndicatorView.topAnchor.constraint(equalTo: urlBarContainer.bottomAnchor),
             nhpIndicatorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -493,6 +504,10 @@ class BrowserViewController: UIViewController {
         webView.reload()
     }
     
+    @objc private func qrScanTapped() {
+        openQRScanner()
+    }
+    
     @objc private func homeTapped() {
         currentPageIsNhp = false
         nhpIndicatorView.isHidden = true
@@ -549,6 +564,10 @@ class BrowserViewController: UIViewController {
     // MARK: - Main Menu
     private func showMainMenu() {
         let alert = UIAlertController(title: "Menu", message: nil, preferredStyle: .actionSheet)
+        
+        alert.addAction(UIAlertAction(title: "📷 Scan QR Code", style: .default) { [weak self] _ in
+            self?.openQRScanner()
+        })
         
         alert.addAction(UIAlertAction(title: "🔗 Share Page", style: .default) { [weak self] _ in
             self?.shareCurrentPage()
@@ -723,6 +742,12 @@ class BrowserViewController: UIViewController {
         showToast(isDesktopMode ? "Desktop mode enabled" : "Mobile mode enabled")
     }
     
+    private func openQRScanner() {
+        let qrScanVC = QRScanViewController()
+        qrScanVC.modalPresentationStyle = .fullScreen
+        present(qrScanVC, animated: true)
+    }
+
     private func showAbout() {
         let nhpStatus = NhpcoreIsInitialized() ? "Initialized ✓" : "Not initialized"
         let message = """

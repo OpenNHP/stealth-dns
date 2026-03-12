@@ -37,3 +37,25 @@ func NhpcoreIsInitialized() -> Bool {
 func NhpcoreCleanup() {
     Nhpcore.NhpcoreCleanup()
 }
+
+// MARK: - QR Code Authentication Functions
+
+/// Parse QR code data and return structured JSON
+func NhpcoreParseQRCodeData(_ qrContent: String) -> String {
+    return Nhpcore.NhpcoreParseQRCodeData(qrContent)
+}
+
+/// Generate TOTP code from secret
+func NhpcoreGenerateTOTP(_ secret: String) -> String {
+    return Nhpcore.NhpcoreGenerateTOTP(secret)
+}
+
+/// Verify QR authentication with server
+func NhpcoreVerifyQRAuth(_ serverUrl: String, _ encryptedData: String, _ otpCode: String, _ deviceInfo: String, _ aspId: String, _ resId: String) -> String {
+    return Nhpcore.NhpcoreVerifyQRAuth(serverUrl, encryptedData, otpCode, deviceInfo, aspId, resId)
+}
+
+/// Notify server that QR code was scanned
+func NhpcoreNotifyQRScan(_ serverUrl: String, _ sessionId: String, _ aspId: String, _ resId: String) -> String {
+    return Nhpcore.NhpcoreNotifyQRScan(serverUrl, sessionId, aspId, resId)
+}

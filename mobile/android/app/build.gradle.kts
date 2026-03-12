@@ -78,6 +78,16 @@ dependencies {
     // WebView
     implementation("androidx.webkit:webkit:1.10.0")
     
+    // CameraX for QR scanning
+    val cameraxVersion = "1.3.1"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+    
+    // ML Kit for barcode scanning
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    
     // NHP Core Library (built from Go using gomobile)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))))
 

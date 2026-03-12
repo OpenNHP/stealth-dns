@@ -69,9 +69,9 @@
         <true/>
     </dict>
     
-    <!-- Camera for WebView -->
+    <!-- Camera for WebView and QR Scanning -->
     <key>NSCameraUsageDescription</key>
-    <string>此应用需要访问相机以支持网页内容。</string>
+    <string>StealthDNS需要访问相机以扫描NHP登录二维码和支持网页内容。</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>此应用需要访问麦克风以支持网页内容。</string>
     <key>NSPhotoLibraryUsageDescription</key>

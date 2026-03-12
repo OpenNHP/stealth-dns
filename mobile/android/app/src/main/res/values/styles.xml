@@ -24,4 +24,11 @@
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:background">@color/surface_color</item>
     </style>
+
+    <!-- No Action Bar theme for QR scanner -->
+    <style name="AppTheme.NoActionBar" parent="AppTheme">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
 </resources>

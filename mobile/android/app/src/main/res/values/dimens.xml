@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- QR Scan Frame Dimensions -->
+    <dimen name="scan_frame_size">250dp</dimen>
+    <dimen name="scan_line_margin">16dp</dimen>
+    <dimen name="scan_line_height">3dp</dimen>
+</resources>

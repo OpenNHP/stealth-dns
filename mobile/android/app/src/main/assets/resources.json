@@ -3,7 +3,7 @@
     "privateKeyBase64": "eACeqvhs7AWHIXM+xsKK9cCk31gFinnMGgGI2RuAxUQ=",
     "userId": "mobile-agent",
     "organizationId": "opennhp.cn",
-    "cipherScheme": 1
+    "cipherScheme": 0
   },
   "servers": [
     {

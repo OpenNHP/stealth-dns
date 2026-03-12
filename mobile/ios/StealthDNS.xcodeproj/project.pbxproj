@@ -10,6 +10,7 @@
 		001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101 /* AppDelegate.swift */; };
 		002 /* BrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 102 /* BrowserViewController.swift */; };
 		003 /* NhpcoreBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103 /* NhpcoreBridge.swift */; };
+		009 /* QRScanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 105 /* QRScanViewController.swift */; };
 		004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 201 /* Assets.xcassets */; };
 		005 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 202 /* LaunchScreen.storyboard */; };
 		006 /* resources.json in Resources */ = {isa = PBXBuildFile; fileRef = 203 /* resources.json */; };
@@ -23,6 +24,7 @@
 		102 /* BrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserViewController.swift; sourceTree = "<group>"; };
 		103 /* NhpcoreBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NhpcoreBridge.swift; sourceTree = "<group>"; };
 		104 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		105 /* QRScanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScanViewController.swift; sourceTree = "<group>"; };
 		201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		202 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		203 /* resources.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = resources.json; sourceTree = "<group>"; };
@@ -86,6 +88,7 @@
 				101 /* AppDelegate.swift */,
 				102 /* BrowserViewController.swift */,
 				103 /* NhpcoreBridge.swift */,
+				105 /* QRScanViewController.swift */,
 				201 /* Assets.xcassets */,
 				202 /* LaunchScreen.storyboard */,
 				203 /* resources.json */,
@@ -170,6 +173,7 @@
 				001 /* AppDelegate.swift in Sources */,
 				002 /* BrowserViewController.swift in Sources */,
 				003 /* NhpcoreBridge.swift in Sources */,
+				009 /* QRScanViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

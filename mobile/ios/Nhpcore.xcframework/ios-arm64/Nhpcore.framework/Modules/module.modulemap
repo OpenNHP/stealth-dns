@@ -1,0 +1,8 @@
+framework module "Nhpcore" {
+	header "ref.h"
+    header "Nhpcore.objc.h"
+    header "Universe.objc.h"
+    header "Nhpcore.h"
+
+    export *
+}
