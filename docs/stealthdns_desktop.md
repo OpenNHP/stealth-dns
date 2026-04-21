@@ -4,14 +4,14 @@
 
 #### 1.1.1 Go Environment Setup
 
-Go Language environment: **Go 1.24.10** . Installation package download: <https://go.dev/dl/>
+Go Language environment: **Go 1.26.2** . Installation package download: <https://go.dev/dl/>
 - **Windows and macOS** Environment, install Go through the downloaded installer.
 - **Linux** environment can be installed directly through the management tool: `sudo apt install golang`.Alternatively, perform a manual installation using the following commands:
 
      ```sh
   1. sudo apt-get update
-  2. wget https://go.dev/dl/go1.24.10.linux-amd64.tar.gz
-  3. sudo tar -xvf go1.24.10.linux-amd64.tar.gz
+  2. wget https://go.dev/dl/go1.26.2.linux-amd64.tar.gz
+  3. sudo tar -xvf go1.26.2.linux-amd64.tar.gz
   4. sudo mv go /usr/local
   5. export GOROOT=/usr/local/go
   6. export GOPATH=$HOME/go

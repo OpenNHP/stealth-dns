@@ -2,7 +2,7 @@ module stealthdns-ui
 
 go 1.22.0
 
-toolchain go1.24.10
+toolchain go1.26.2
 
 require (
 	github.com/pelletier/go-toml/v2 v2.2.4
