@@ -1,6 +1,6 @@
 module github.com/OpenNHP/StealthDNS
 
-go 1.24.10
+go 1.26.2
 
 require (
 	github.com/OpenNHP/opennhp/nhp v0.0.0-20251203043554-648825463a33

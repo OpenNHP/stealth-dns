@@ -107,7 +107,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Println(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, err)
 	}
 }
 
