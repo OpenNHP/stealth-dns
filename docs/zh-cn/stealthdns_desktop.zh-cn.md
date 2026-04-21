@@ -12,8 +12,8 @@ Go语言环境：**1.24.10**。安装包下载地址：<https://go.dev/dl/>
 
   ```sh
   1. sudo apt-get update
-  2. wget https://go.dev/dl/go1.24.10.linux-amd64.tar.gz
-  3. sudo tar -xvf go1.24.10.linux-amd64.tar.gz
+  2. wget https://go.dev/dl/go1.26.2.linux-amd64.tar.gz
+  3. sudo tar -xvf go1.26.2.linux-amd64.tar.gz
   4. sudo mv go /usr/local
   5. export GOROOT=/usr/local/go
   6. export GOPATH=$HOME/go
