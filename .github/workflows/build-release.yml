@@ -1,0 +1,316 @@
+name: Build Release Assets
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      tag_name:
+        required: true
+        type: string
+
+env:
+  GO_VERSION: '1.23'
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================
+  # Desktop Builds (using Makefile)
+  # ============================================
+
+  build-windows:
+    name: Windows Desktop
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Update version file
+        run: echo "${{ inputs.version }}" > .version
+
+      - name: Build SDK and UI using Makefile
+        shell: bash
+        run: |
+          make init
+          make build-sdk-windows
+          make ui
+
+      - name: Package Windows Release
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item ui/build/bin/stealthdns-ui.exe dist/
+          Copy-Item sdk/nhp-agent.dll dist/ -ErrorAction SilentlyContinue
+          Copy-Item -Recurse etc dist/
+          Compress-Archive -Path dist/* -DestinationPath StealthDNS-${{ inputs.version }}-windows-amd64.zip
+
+      - name: Upload Windows Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: StealthDNS-${{ inputs.version }}-windows-amd64.zip
+
+  build-macos:
+    name: macOS Desktop
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Update version file
+        run: echo "${{ inputs.version }}" > .version
+
+      - name: Build SDK and UI using Makefile
+        run: |
+          make init
+          make build-sdk-macos
+          make ui
+
+      - name: Package macOS Release
+        run: |
+          mkdir -p dist
+          cp -r release/stealthdns-ui.app dist/StealthDNS.app 2>/dev/null || \
+            cp -r ui/build/bin/stealthdns-ui.app dist/StealthDNS.app
+          hdiutil create -volname "StealthDNS" -srcfolder dist -ov -format UDZO StealthDNS-${{ inputs.version }}-macos-universal.dmg
+
+      - name: Upload macOS Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: StealthDNS-${{ inputs.version }}-macos-universal.dmg
+
+  build-linux:
+    name: Linux Desktop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Linux Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Update version file
+        run: echo "${{ inputs.version }}" > .version
+
+      - name: Build SDK and UI using Makefile
+        run: |
+          make init
+          make build-sdk-linux
+          make ui
+
+      - name: Package Linux Release
+        run: |
+          mkdir -p dist/StealthDNS-${{ inputs.version }}
+          cp release/stealthdns-ui dist/StealthDNS-${{ inputs.version }}/stealthdns 2>/dev/null || \
+            cp ui/build/bin/stealthdns-ui dist/StealthDNS-${{ inputs.version }}/stealthdns
+          cp release/sdk/nhp-agent.so dist/StealthDNS-${{ inputs.version }}/ 2>/dev/null || \
+            cp sdk/nhp-agent.so dist/StealthDNS-${{ inputs.version }}/ 2>/dev/null || true
+          cp -r release/etc dist/StealthDNS-${{ inputs.version }}/ 2>/dev/null || \
+            cp -r etc dist/StealthDNS-${{ inputs.version }}/
+          cd dist && tar -czvf ../StealthDNS-${{ inputs.version }}-linux-amd64.tar.gz StealthDNS-${{ inputs.version }}
+
+      - name: Upload Linux Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: StealthDNS-${{ inputs.version }}-linux-amd64.tar.gz
+
+  # ============================================
+  # Mobile Builds (using mobile/Makefile)
+  # ============================================
+
+  build-android:
+    name: Android Mobile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install gomobile
+        run: |
+          cd mobile && make setup-gomobile
+
+      - name: Update version in build.gradle.kts
+        run: |
+          cd mobile/android/app
+          sed -i 's/versionName = "[^"]*"/versionName = "${{ inputs.version }}"/' build.gradle.kts
+          VERSION_CODE=$(echo "${{ inputs.version }}" | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
+          sed -i "s/versionCode = [0-9]*/versionCode = $VERSION_CODE/" build.gradle.kts
+
+      - name: Build Android using Makefile
+        run: |
+          cd mobile && make android
+
+      - name: Sign APK (if secrets available)
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > mobile/android/keystore.jks
+          export ANDROID_KEYSTORE_PATH=$(pwd)/mobile/android/keystore.jks
+          cd mobile/android && ./gradlew assembleRelease
+
+      - name: Rename APK
+        run: |
+          cp mobile/build/android/StealthDNS-Browser.apk StealthDNS-${{ inputs.version }}-android.apk || \
+            cp mobile/android/app/build/outputs/apk/release/app-release.apk StealthDNS-${{ inputs.version }}-android.apk
+
+      - name: Upload Android Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: StealthDNS-${{ inputs.version }}-android.apk
+
+  build-ios:
+    name: iOS Mobile
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install gomobile
+        run: |
+          cd mobile && make setup-gomobile
+
+      - name: Update version in Info.plist
+        run: |
+          cd mobile/ios/StealthDNS
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ inputs.version }}" Info.plist
+          VERSION_CODE=$(echo "${{ inputs.version }}" | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION_CODE" Info.plist
+
+      - name: Build iOS using Makefile
+        run: |
+          cd mobile && make ios
+
+      - name: Create IPA (Unsigned - for sideloading)
+        run: |
+          cd mobile/build/ios/StealthDNS.xcarchive/Products/Applications
+          mkdir -p Payload
+          cp -r StealthDNS.app Payload/
+          zip -r ../../../StealthDNS-${{ inputs.version }}-ios.ipa Payload
+
+      - name: Upload iOS Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: mobile/build/ios/StealthDNS-${{ inputs.version }}-ios.ipa
+
+  # ============================================
+  # Update Release Notes
+  # ============================================
+
+  update-release:
+    name: Update Release Description
+    needs: [build-windows, build-macos, build-linux, build-android, build-ios]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Release Body
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          append_body: true
+          body: |
+
+            ---
+
+            ## Downloads
+
+            | Platform | Type | Description |
+            |----------|------|-------------|
+            | Windows | Desktop | Full-featured GUI with system tray, DNS proxy service |
+            | macOS | Desktop | Native app bundle with system integration |
+            | Linux | Desktop | Binary with desktop environment support |
+            | Android | Mobile | StealthDNS Browser with integrated NHP WebView |
+            | iOS | Mobile | StealthDNS Browser with integrated NHP WebView (unsigned, for sideloading) |
+
+            ### Installation Notes
+
+            **Windows**: Extract the zip and run `stealthdns-ui.exe`
+
+            **macOS**: Open the DMG and drag StealthDNS to Applications
+
+            **Linux**: Extract the tarball and run `./stealthdns`
+
+            **Android**: Enable "Install from unknown sources" and install the APK
+
+            **iOS**: Requires sideloading via AltStore, Sideloadly, or similar tools
