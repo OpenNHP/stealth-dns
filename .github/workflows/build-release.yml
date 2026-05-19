@@ -44,12 +44,19 @@ jobs:
       - name: Update version file
         run: echo "${{ inputs.version }}" > .version
 
-      - name: Build SDK and UI using Makefile
+      - name: Initialize project
         shell: bash
         run: |
-          make init
-          make build-sdk-windows
-          make ui
+          git submodule update --init --recursive
+          go mod tidy
+
+      - name: Build Windows UI
+        shell: bash
+        run: |
+          cd ui
+          go mod tidy
+          cd frontend && npm ci && cd ..
+          wails build -platform windows/amd64 -o stealthdns-ui.exe
 
       - name: Package Windows Release
         shell: pwsh
