@@ -58,20 +58,27 @@ jobs:
           git submodule update --init --recursive
           go mod tidy
 
+      - name: Get Go path for MSYS2
+        id: go-path
+        shell: bash
+        run: |
+          GO_BIN_PATH=$(dirname "$(which go)")
+          echo "GO_BIN_PATH=$GO_BIN_PATH" >> $GITHUB_OUTPUT
+          echo "Go binary path: $GO_BIN_PATH"
+
       - name: Build Windows SDK
         shell: msys2 {0}
-        env:
-          GOROOT: ${{ steps.setup-go.outputs.GOROOT || env.GOROOT }}
         run: |
-          # Add MinGW and Go to PATH (convert Windows path to MSYS2 format)
+          # Add MinGW to PATH
           export PATH="/mingw64/bin:$PATH"
-          if [ -n "$GOROOT" ]; then
-            GOROOT_MSYS=$(cygpath -u "$GOROOT")
-            export PATH="$GOROOT_MSYS/bin:$PATH"
+
+          # Add Go to PATH (convert from bash step output)
+          GO_WIN_PATH="${{ steps.go-path.outputs.GO_BIN_PATH }}"
+          if [ -n "$GO_WIN_PATH" ]; then
+            GO_MSYS_PATH=$(cygpath -u "$GO_WIN_PATH")
+            export PATH="$GO_MSYS_PATH:$PATH"
+            echo "Added Go path: $GO_MSYS_PATH"
           fi
-          # Fallback: try common Go installation paths
-          export PATH="/c/hostedtoolcache/windows/go/1.23.0/x64/bin:$PATH"
-          export PATH="/c/Program Files/Go/bin:$PATH"
 
           echo "Go version: $(go version)"
           mkdir -p sdk
