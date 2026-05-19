@@ -44,11 +44,27 @@ jobs:
       - name: Update version file
         run: echo "${{ inputs.version }}" > .version
 
+      - name: Setup MSYS2 for CGO
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: mingw-w64-x86_64-gcc
+
       - name: Initialize project
         shell: bash
         run: |
           git submodule update --init --recursive
           go mod tidy
+
+      - name: Build Windows SDK
+        shell: msys2 {0}
+        run: |
+          export PATH="/mingw64/bin:$PATH"
+          mkdir -p sdk
+          cd third_party/opennhp/nhp && go mod tidy
+          cd ../endpoints && go mod tidy
+          CGO_ENABLED=1 CC=gcc go build -a -trimpath -buildmode=c-shared -ldflags="-w -s" -o ../../../sdk/nhp-agent.dll ./agent/main/main.go ./agent/main/export.go
 
       - name: Build Windows CLI
         shell: bash
@@ -56,6 +72,7 @@ jobs:
           mkdir -p release/etc release/sdk
           go build -trimpath -ldflags="-w -s" -o release/stealth-dns.exe ./main.go
           cp -r etc/* release/etc/
+          cp sdk/nhp-agent.dll release/sdk/ 2>/dev/null || true
 
       - name: Build Windows UI
         shell: bash
@@ -69,9 +86,10 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist
+          New-Item -ItemType Directory -Force -Path dist/sdk
           Copy-Item ui/build/bin/stealthdns-ui.exe dist/
           Copy-Item release/stealth-dns.exe dist/
-          Copy-Item sdk/nhp-agent.dll dist/ -ErrorAction SilentlyContinue
+          Copy-Item sdk/nhp-agent.dll dist/sdk/ -ErrorAction SilentlyContinue
           Copy-Item -Recurse release/etc dist/
           Compress-Archive -Path dist/* -DestinationPath StealthDNS-${{ inputs.version }}-windows-amd64.zip
 
