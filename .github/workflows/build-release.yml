@@ -114,27 +114,39 @@ jobs:
           make build
           make ui
 
-      - name: Package macOS Release
+      - name: Package macOS Release (PKG Installer)
         run: |
-          # Create a folder structure that UI expects
+          # Create folder structure for PKG
           # UI looks for stealth-dns in the parent directory of .app
-          mkdir -p dist/StealthDNS
+          mkdir -p pkg-root/Applications/StealthDNS
+
           # Copy the app bundle
-          cp -r release/stealthdns-ui.app dist/StealthDNS/StealthDNS.app 2>/dev/null || \
-            cp -r ui/build/bin/stealthdns-ui.app dist/StealthDNS/StealthDNS.app
-          # Copy stealth-dns CLI to same directory as .app (UI looks here)
-          cp release/stealth-dns dist/StealthDNS/
+          cp -r release/stealthdns-ui.app pkg-root/Applications/StealthDNS/StealthDNS.app 2>/dev/null || \
+            cp -r ui/build/bin/stealthdns-ui.app pkg-root/Applications/StealthDNS/StealthDNS.app
+
+          # Copy stealth-dns CLI to same directory as .app
+          cp release/stealth-dns pkg-root/Applications/StealthDNS/
+
           # Copy SDK and config
-          mkdir -p dist/StealthDNS/sdk
-          cp release/sdk/nhp-agent.dylib dist/StealthDNS/sdk/ 2>/dev/null || true
-          cp -r release/etc dist/StealthDNS/
-          hdiutil create -volname "StealthDNS" -srcfolder dist/StealthDNS -ov -format UDZO StealthDNS-${{ inputs.version }}-macos-universal.dmg
+          mkdir -p pkg-root/Applications/StealthDNS/sdk
+          cp release/sdk/nhp-agent.dylib pkg-root/Applications/StealthDNS/sdk/ 2>/dev/null || true
+          cp -r release/etc pkg-root/Applications/StealthDNS/
+
+          # Set permissions
+          chmod -R 755 pkg-root/Applications/StealthDNS
+
+          # Build PKG installer
+          pkgbuild --root pkg-root \
+                   --identifier com.opennhp.stealthdns \
+                   --version ${{ inputs.version }} \
+                   --install-location / \
+                   StealthDNS-${{ inputs.version }}-macos-universal.pkg
 
       - name: Upload macOS Asset
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name }}
-          files: StealthDNS-${{ inputs.version }}-macos-universal.dmg
+          files: StealthDNS-${{ inputs.version }}-macos-universal.pkg
 
   build-linux:
     name: Linux Desktop
