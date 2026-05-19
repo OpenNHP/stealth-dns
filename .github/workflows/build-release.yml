@@ -116,18 +116,19 @@ jobs:
 
       - name: Package macOS Release
         run: |
-          mkdir -p dist
+          # Create a folder structure that UI expects
+          # UI looks for stealth-dns in the parent directory of .app
+          mkdir -p dist/StealthDNS
           # Copy the app bundle
-          cp -r release/stealthdns-ui.app dist/StealthDNS.app 2>/dev/null || \
-            cp -r ui/build/bin/stealthdns-ui.app dist/StealthDNS.app
-          # Copy stealth-dns CLI into app bundle so UI can find it
-          cp release/stealth-dns dist/StealthDNS.app/Contents/MacOS/
-          # Also copy SDK and config
-          mkdir -p dist/StealthDNS.app/Contents/MacOS/sdk
-          mkdir -p dist/StealthDNS.app/Contents/MacOS/etc
-          cp release/sdk/nhp-agent.dylib dist/StealthDNS.app/Contents/MacOS/sdk/ 2>/dev/null || true
-          cp -r release/etc/* dist/StealthDNS.app/Contents/MacOS/etc/ 2>/dev/null || true
-          hdiutil create -volname "StealthDNS" -srcfolder dist -ov -format UDZO StealthDNS-${{ inputs.version }}-macos-universal.dmg
+          cp -r release/stealthdns-ui.app dist/StealthDNS/StealthDNS.app 2>/dev/null || \
+            cp -r ui/build/bin/stealthdns-ui.app dist/StealthDNS/StealthDNS.app
+          # Copy stealth-dns CLI to same directory as .app (UI looks here)
+          cp release/stealth-dns dist/StealthDNS/
+          # Copy SDK and config
+          mkdir -p dist/StealthDNS/sdk
+          cp release/sdk/nhp-agent.dylib dist/StealthDNS/sdk/ 2>/dev/null || true
+          cp -r release/etc dist/StealthDNS/
+          hdiutil create -volname "StealthDNS" -srcfolder dist/StealthDNS -ov -format UDZO StealthDNS-${{ inputs.version }}-macos-universal.dmg
 
       - name: Upload macOS Asset
         uses: softprops/action-gh-release@v2
