@@ -61,14 +61,27 @@ build-sdk-linux:
 	@cd $(OPENNHP_DIR) && git reset --hard HEAD 2>/dev/null || true
 
 build-sdk-macos:
-	@echo "[StealthDNS] Building macOS SDK (nhp-agent.dylib)..."
+	@echo "[StealthDNS] Building macOS SDK (nhp-agent.dylib) - Universal Binary..."
 	@cd $(OPENNHP_DIR)/nhp && go mod tidy
 	@cd $(OPENNHP_DIR)/endpoints && go mod tidy
+	@mkdir -p sdk
+	@# Build for ARM64 (Apple Silicon)
+	@echo "[StealthDNS] Building ARM64 variant..."
 	@cd $(OPENNHP_DIR)/endpoints && \
 		GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 \
 		go build -a -trimpath -buildmode=c-shared -ldflags="-w -s" -v \
-		-o ../../../sdk/nhp-agent.dylib ./agent/main/main.go ./agent/main/export.go
-	@echo "[StealthDNS] macOS SDK built successfully!"
+		-o ../../../sdk/nhp-agent-arm64.dylib ./agent/main/main.go ./agent/main/export.go
+	@# Build for AMD64 (Intel)
+	@echo "[StealthDNS] Building AMD64 variant..."
+	@cd $(OPENNHP_DIR)/endpoints && \
+		GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 \
+		go build -a -trimpath -buildmode=c-shared -ldflags="-w -s" -v \
+		-o ../../../sdk/nhp-agent-amd64.dylib ./agent/main/main.go ./agent/main/export.go
+	@# Combine into universal binary using lipo
+	@echo "[StealthDNS] Creating universal binary..."
+	@lipo -create -output sdk/nhp-agent.dylib sdk/nhp-agent-arm64.dylib sdk/nhp-agent-amd64.dylib
+	@rm -f sdk/nhp-agent-arm64.dylib sdk/nhp-agent-amd64.dylib sdk/nhp-agent-arm64.h sdk/nhp-agent-amd64.h
+	@echo "[StealthDNS] macOS SDK (universal) built successfully!"
 	@cd $(OPENNHP_DIR)/nhp && git restore go.mod go.sum 2>/dev/null || git checkout go.mod go.sum 2>/dev/null || true
 	@cd $(OPENNHP_DIR)/endpoints && git restore go.mod go.sum 2>/dev/null || git checkout go.mod go.sum 2>/dev/null || true
 	@cd $(OPENNHP_DIR) && git reset --hard HEAD 2>/dev/null || true
