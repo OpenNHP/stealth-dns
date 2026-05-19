@@ -167,6 +167,14 @@ jobs:
           mkdir -p pkg-root/Applications
           cp -r "$APP_SRC" pkg-root/Applications/StealthDNS.app
 
+          # Update Info.plist with correct app name
+          INFO_PLIST="pkg-root/Applications/StealthDNS.app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName StealthDNS" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName StealthDNS" "$INFO_PLIST" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string StealthDNS" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.opennhp.stealthdns" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ inputs.version }}" "$INFO_PLIST"
+
           # Embed CLI in Contents/MacOS/ (same directory as UI executable)
           cp release/stealth-dns pkg-root/Applications/StealthDNS.app/Contents/MacOS/
 
