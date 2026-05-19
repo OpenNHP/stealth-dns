@@ -154,24 +154,31 @@ jobs:
 
       - name: Package macOS Release (PKG Installer)
         run: |
-          # Create folder structure for PKG
-          # UI looks for stealth-dns in the parent directory of .app
-          mkdir -p pkg-root/Applications/StealthDNS
+          # Create self-contained .app bundle
+          # Structure: StealthDNS.app/Contents/{MacOS/stealth-dns, Resources/{etc,sdk}}
 
-          # Copy the app bundle
-          cp -r release/stealthdns-ui.app pkg-root/Applications/StealthDNS/StealthDNS.app 2>/dev/null || \
-            cp -r ui/build/bin/stealthdns-ui.app pkg-root/Applications/StealthDNS/StealthDNS.app
+          # Get the app bundle
+          APP_SRC="release/stealthdns-ui.app"
+          if [ ! -d "$APP_SRC" ]; then
+            APP_SRC="ui/build/bin/stealthdns-ui.app"
+          fi
 
-          # Copy stealth-dns CLI to same directory as .app
-          cp release/stealth-dns pkg-root/Applications/StealthDNS/
+          # Create package root
+          mkdir -p pkg-root/Applications
+          cp -r "$APP_SRC" pkg-root/Applications/StealthDNS.app
 
-          # Copy SDK and config
-          mkdir -p pkg-root/Applications/StealthDNS/sdk
-          cp release/sdk/nhp-agent.dylib pkg-root/Applications/StealthDNS/sdk/ 2>/dev/null || true
-          cp -r release/etc pkg-root/Applications/StealthDNS/
+          # Embed CLI in Contents/MacOS/ (same directory as UI executable)
+          cp release/stealth-dns pkg-root/Applications/StealthDNS.app/Contents/MacOS/
+
+          # Embed SDK and config in Contents/Resources/
+          mkdir -p pkg-root/Applications/StealthDNS.app/Contents/Resources/sdk
+          mkdir -p pkg-root/Applications/StealthDNS.app/Contents/Resources/etc
+          cp release/sdk/nhp-agent.dylib pkg-root/Applications/StealthDNS.app/Contents/Resources/sdk/ 2>/dev/null || true
+          cp -r release/etc/* pkg-root/Applications/StealthDNS.app/Contents/Resources/etc/
 
           # Set permissions
-          chmod -R 755 pkg-root/Applications/StealthDNS
+          chmod -R 755 pkg-root/Applications/StealthDNS.app
+          chmod +x pkg-root/Applications/StealthDNS.app/Contents/MacOS/*
 
           # Build PKG installer
           pkgbuild --root pkg-root \

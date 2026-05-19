@@ -58,9 +58,10 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
-	// Get working directory
-	workDir := a.findWorkDir(ctx)
+	// Get working directory and resource directory
+	workDir, resourceDir := a.findWorkDir(ctx)
 	wailsRuntime.LogInfo(ctx, "Working directory: "+workDir)
+	wailsRuntime.LogInfo(ctx, "Resource directory: "+resourceDir)
 
 	// Set paths
 	if goruntime.GOOS == "windows" {
@@ -68,24 +69,25 @@ func (a *App) startup(ctx context.Context) {
 	} else {
 		a.exePath = filepath.Join(workDir, "stealth-dns")
 	}
-	a.configPath = filepath.Join(workDir, "etc", "config.toml")
-	a.serverPath = filepath.Join(workDir, "etc", "server.toml")
+	a.configPath = filepath.Join(resourceDir, "etc", "config.toml")
+	a.serverPath = filepath.Join(resourceDir, "etc", "server.toml")
 
 	wailsRuntime.LogInfo(ctx, "DNS executable path: "+a.exePath)
 	wailsRuntime.LogInfo(ctx, "StealthDNS UI started")
 }
 
-// findWorkDir finds the correct working directory
-func (a *App) findWorkDir(ctx context.Context) string {
+// findWorkDir finds the correct working directory and resource directory
+// Returns (workDir, resourceDir) - workDir is where CLI executable is, resourceDir is where etc/ is
+func (a *App) findWorkDir(ctx context.Context) (string, string) {
 	// Get executable path
 	exePath, err := os.Executable()
 	if err != nil {
 		wailsRuntime.LogError(ctx, "Failed to get executable path: "+err.Error())
 		// Fall back to current working directory
 		if cwd, err := os.Getwd(); err == nil {
-			return cwd
+			return cwd, cwd
 		}
-		return "."
+		return ".", "."
 	}
 
 	// Resolve symbolic links
@@ -98,17 +100,19 @@ func (a *App) findWorkDir(ctx context.Context) string {
 	wailsRuntime.LogDebug(ctx, "Executable directory: "+exeDir)
 
 	// Special handling for macOS .app bundle
-	// If in .app/Contents/MacOS/ directory, need to go up three levels to .app parent directory
+	// CLI is in Contents/MacOS/, resources (etc/, sdk/) are in Contents/Resources/
 	if goruntime.GOOS == "darwin" {
 		if filepath.Base(exeDir) == "MacOS" {
 			contentsDir := filepath.Dir(exeDir)
 			if filepath.Base(contentsDir) == "Contents" {
 				appDir := filepath.Dir(contentsDir)
 				if filepath.Ext(appDir) == ".app" {
-					// Return the directory containing .app
-					workDir := filepath.Dir(appDir)
-					wailsRuntime.LogInfo(ctx, "Detected macOS .app bundle, adjusting working directory to: "+workDir)
-					return workDir
+					resourceDir := filepath.Join(contentsDir, "Resources")
+					wailsRuntime.LogInfo(ctx, "Detected macOS .app bundle")
+					wailsRuntime.LogInfo(ctx, "  CLI directory: "+exeDir)
+					wailsRuntime.LogInfo(ctx, "  Resource directory: "+resourceDir)
+					// CLI is in MacOS folder, resources in Resources folder
+					return exeDir, resourceDir
 				}
 			}
 		}
@@ -122,14 +126,14 @@ func (a *App) findWorkDir(ctx context.Context) string {
 
 	// First check executable directory
 	if _, err := os.Stat(filepath.Join(exeDir, stealthDNSName)); err == nil {
-		return exeDir
+		return exeDir, exeDir
 	}
 
 	// Check current working directory
 	if cwd, err := os.Getwd(); err == nil {
 		if _, err := os.Stat(filepath.Join(cwd, stealthDNSName)); err == nil {
 			wailsRuntime.LogInfo(ctx, "Found stealth-dns in current working directory: "+cwd)
-			return cwd
+			return cwd, cwd
 		}
 	}
 
@@ -137,12 +141,12 @@ func (a *App) findWorkDir(ctx context.Context) string {
 	parentDir := filepath.Dir(exeDir)
 	if _, err := os.Stat(filepath.Join(parentDir, stealthDNSName)); err == nil {
 		wailsRuntime.LogInfo(ctx, "Found stealth-dns in parent directory: "+parentDir)
-		return parentDir
+		return parentDir, parentDir
 	}
 
 	// Fall back to executable directory
 	wailsRuntime.LogWarning(ctx, "stealth-dns not found, using default directory: "+exeDir)
-	return exeDir
+	return exeDir, exeDir
 }
 
 // shutdown is called when the application closes
