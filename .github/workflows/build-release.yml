@@ -50,6 +50,13 @@ jobs:
           git submodule update --init --recursive
           go mod tidy
 
+      - name: Build Windows CLI
+        shell: bash
+        run: |
+          mkdir -p release/etc release/sdk
+          go build -trimpath -ldflags="-w -s" -o release/stealth-dns.exe ./main.go
+          cp -r etc/* release/etc/
+
       - name: Build Windows UI
         shell: bash
         run: |
@@ -63,8 +70,9 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist
           Copy-Item ui/build/bin/stealthdns-ui.exe dist/
+          Copy-Item release/stealth-dns.exe dist/
           Copy-Item sdk/nhp-agent.dll dist/ -ErrorAction SilentlyContinue
-          Copy-Item -Recurse etc dist/
+          Copy-Item -Recurse release/etc dist/
           Compress-Archive -Path dist/* -DestinationPath StealthDNS-${{ inputs.version }}-windows-amd64.zip
 
       - name: Upload Windows Asset
@@ -103,13 +111,22 @@ jobs:
           mkdir -p release
           make init
           make build-sdk-macos
+          make build
           make ui
 
       - name: Package macOS Release
         run: |
           mkdir -p dist
+          # Copy the app bundle
           cp -r release/stealthdns-ui.app dist/StealthDNS.app 2>/dev/null || \
             cp -r ui/build/bin/stealthdns-ui.app dist/StealthDNS.app
+          # Copy stealth-dns CLI into app bundle so UI can find it
+          cp release/stealth-dns dist/StealthDNS.app/Contents/MacOS/
+          # Also copy SDK and config
+          mkdir -p dist/StealthDNS.app/Contents/MacOS/sdk
+          mkdir -p dist/StealthDNS.app/Contents/MacOS/etc
+          cp release/sdk/nhp-agent.dylib dist/StealthDNS.app/Contents/MacOS/sdk/ 2>/dev/null || true
+          cp -r release/etc/* dist/StealthDNS.app/Contents/MacOS/etc/ 2>/dev/null || true
           hdiutil create -volname "StealthDNS" -srcfolder dist -ov -format UDZO StealthDNS-${{ inputs.version }}-macos-universal.dmg
 
       - name: Upload macOS Asset
@@ -153,15 +170,21 @@ jobs:
           mkdir -p release
           make init
           make build-sdk-linux
+          make build
           make ui
 
       - name: Package Linux Release
         run: |
           mkdir -p dist/StealthDNS-${{ inputs.version }}
-          cp release/stealthdns-ui dist/StealthDNS-${{ inputs.version }}/stealthdns 2>/dev/null || \
-            cp ui/build/bin/stealthdns-ui dist/StealthDNS-${{ inputs.version }}/stealthdns
-          cp release/sdk/nhp-agent.so dist/StealthDNS-${{ inputs.version }}/ 2>/dev/null || \
-            cp sdk/nhp-agent.so dist/StealthDNS-${{ inputs.version }}/ 2>/dev/null || true
+          # Copy UI
+          cp ui/build/bin/stealthdns-ui dist/StealthDNS-${{ inputs.version }}/stealthdns-ui
+          # Copy CLI
+          cp release/stealth-dns dist/StealthDNS-${{ inputs.version }}/stealth-dns
+          # Copy SDK
+          mkdir -p dist/StealthDNS-${{ inputs.version }}/sdk
+          cp release/sdk/nhp-agent.so dist/StealthDNS-${{ inputs.version }}/sdk/ 2>/dev/null || \
+            cp sdk/nhp-agent.so dist/StealthDNS-${{ inputs.version }}/sdk/ 2>/dev/null || true
+          # Copy config
           cp -r release/etc dist/StealthDNS-${{ inputs.version }}/ 2>/dev/null || \
             cp -r etc dist/StealthDNS-${{ inputs.version }}/
           cd dist && tar -czvf ../StealthDNS-${{ inputs.version }}-linux-amd64.tar.gz StealthDNS-${{ inputs.version }}
