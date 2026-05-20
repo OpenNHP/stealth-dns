@@ -188,11 +188,30 @@ jobs:
           chmod -R 755 pkg-root/Applications/StealthDNS.app
           chmod +x pkg-root/Applications/StealthDNS.app/Contents/MacOS/*
 
-          # Build PKG installer
+          # Create postinstall script to fix config permissions
+          mkdir -p scripts
+          cat > scripts/postinstall << 'POSTINSTALL'
+          #!/bin/bash
+          # Make config files writable by all users
+          CONFIG_DIR="/Applications/StealthDNS.app/Contents/MacOS/etc"
+          if [ -d "$CONFIG_DIR" ]; then
+            chmod 755 "$CONFIG_DIR"
+            chmod 666 "$CONFIG_DIR"/*.toml 2>/dev/null || true
+            # Also fix logs directory if it exists
+            LOGS_DIR="/Applications/StealthDNS.app/Contents/MacOS/logs"
+            mkdir -p "$LOGS_DIR"
+            chmod 777 "$LOGS_DIR"
+          fi
+          exit 0
+          POSTINSTALL
+          chmod +x scripts/postinstall
+
+          # Build PKG installer with postinstall script
           pkgbuild --root pkg-root \
                    --identifier com.opennhp.stealthdns \
                    --version ${{ inputs.version }} \
                    --install-location / \
+                   --scripts scripts \
                    StealthDNS-${{ inputs.version }}-macos-universal.pkg
 
       - name: Upload macOS Asset
