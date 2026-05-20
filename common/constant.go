@@ -8,8 +8,8 @@ const (
 )
 
 const (
-	Type_A = iota
-	Type_AAAA
+	Type_A    = 1  // DNS A record type (RFC 1035)
+	Type_AAAA = 28 // DNS AAAA record type (RFC 3596)
 )
 
 const (
