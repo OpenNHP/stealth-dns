@@ -8,7 +8,7 @@
 # OrganizationId: specify the organization id this agent represents.
 # LogLevel: 0: silent, 1: error, 2: info, 3: audit, 4: debug, 5: trace.
 PrivateKeyBase64 = "ID91QmMGjBIlsDcgGb93eoKACzAcfv0r0Zw+hvUgXXM="
-DefaultCipherScheme = 0
+DefaultCipherScheme = 1
 UserId = "stealthdns agent"
 OrganizationId = "opennhp.org"
 LogLevel = 4
