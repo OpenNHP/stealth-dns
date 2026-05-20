@@ -80,6 +80,8 @@ build-sdk-macos:
 	@# Combine into universal binary using lipo
 	@echo "[StealthDNS] Creating universal binary..."
 	@lipo -create -output sdk/nhp-agent.dylib sdk/nhp-agent-arm64.dylib sdk/nhp-agent-amd64.dylib
+	@# Fix the install name (lipo preserves the first input's install name which is nhp-agent-arm64.dylib)
+	@install_name_tool -id nhp-agent.dylib sdk/nhp-agent.dylib
 	@rm -f sdk/nhp-agent-arm64.dylib sdk/nhp-agent-amd64.dylib sdk/nhp-agent-arm64.h sdk/nhp-agent-amd64.h
 	@echo "[StealthDNS] macOS SDK (universal) built successfully!"
 	@cd $(OPENNHP_DIR)/nhp && git restore go.mod go.sum 2>/dev/null || git checkout go.mod go.sum 2>/dev/null || true
