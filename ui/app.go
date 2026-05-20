@@ -100,19 +100,17 @@ func (a *App) findWorkDir(ctx context.Context) (string, string) {
 	wailsRuntime.LogDebug(ctx, "Executable directory: "+exeDir)
 
 	// Special handling for macOS .app bundle
-	// CLI is in Contents/MacOS/, resources (etc/, sdk/) are in Contents/Resources/
+	// CLI and resources (etc/, sdk/) are all in Contents/MacOS/
 	if goruntime.GOOS == "darwin" {
 		if filepath.Base(exeDir) == "MacOS" {
 			contentsDir := filepath.Dir(exeDir)
 			if filepath.Base(contentsDir) == "Contents" {
 				appDir := filepath.Dir(contentsDir)
 				if filepath.Ext(appDir) == ".app" {
-					resourceDir := filepath.Join(contentsDir, "Resources")
 					wailsRuntime.LogInfo(ctx, "Detected macOS .app bundle")
-					wailsRuntime.LogInfo(ctx, "  CLI directory: "+exeDir)
-					wailsRuntime.LogInfo(ctx, "  Resource directory: "+resourceDir)
-					// CLI is in MacOS folder, resources in Resources folder
-					return exeDir, resourceDir
+					wailsRuntime.LogInfo(ctx, "  Working directory: "+exeDir)
+					// Both CLI and resources are in MacOS folder
+					return exeDir, exeDir
 				}
 			}
 		}

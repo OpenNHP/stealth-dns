@@ -178,11 +178,11 @@ jobs:
           # Embed CLI in Contents/MacOS/ (same directory as UI executable)
           cp release/stealth-dns pkg-root/Applications/StealthDNS.app/Contents/MacOS/
 
-          # Embed SDK and config in Contents/Resources/
-          mkdir -p pkg-root/Applications/StealthDNS.app/Contents/Resources/sdk
-          mkdir -p pkg-root/Applications/StealthDNS.app/Contents/Resources/etc
-          cp release/sdk/nhp-agent.dylib pkg-root/Applications/StealthDNS.app/Contents/Resources/sdk/ 2>/dev/null || true
-          cp -r release/etc/* pkg-root/Applications/StealthDNS.app/Contents/Resources/etc/
+          # Embed SDK and config in Contents/MacOS/ (CLI looks for etc/ relative to itself)
+          mkdir -p pkg-root/Applications/StealthDNS.app/Contents/MacOS/sdk
+          mkdir -p pkg-root/Applications/StealthDNS.app/Contents/MacOS/etc
+          cp release/sdk/nhp-agent.dylib pkg-root/Applications/StealthDNS.app/Contents/MacOS/sdk/ 2>/dev/null || true
+          cp -r release/etc/* pkg-root/Applications/StealthDNS.app/Contents/MacOS/etc/
 
           # Set permissions
           chmod -R 755 pkg-root/Applications/StealthDNS.app
