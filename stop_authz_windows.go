@@ -27,11 +27,12 @@ import (
 // this path as best-effort hardening that never weakens security.
 //
 // As on Unix, there is a TOCTOU window before the caller acts on the file and
-// the check is moot if the install directory is world-writable; both require
-// the attacker to already have write access to the install directory, whose
-// worst case is the local DoS this guard bounds. Creating a symlink/reparse
-// point on Windows normally requires privilege, so the Unix Lstat hardening
-// has no direct analogue here.
+// the check is moot if the install directory is world-writable; and an NTFS
+// hard link (mklink /H, which needs no privilege) aliases its target's owner
+// SID, so a hard link to a dir-owner-owned file would still pass. All of these
+// require the attacker to already have write access to the install directory,
+// whose worst case is the local DoS this guard bounds; the real mitigation is
+// keeping the install dir non-world-writable.
 func stopFileAuthorized(stopFilePath string) bool {
 	fileOwner, err := ownerSID(stopFilePath)
 	if err != nil {

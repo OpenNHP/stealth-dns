@@ -24,14 +24,18 @@ import (
 // daemon directly, so this changes nothing about the threat model.)
 //
 // Caveats, acceptable for this local-only, low-severity threat model:
-//   - We Lstat the sentinel (do not follow symlinks) so an attacker cannot
-//     point it at a dir-owner-owned file to forge a passing owner check. The
-//     directory is the trust anchor, so it is Stat'd normally.
+//   - We Lstat the sentinel so the owner check inspects the entry itself and
+//     does not follow a symlink to a dir-owner-owned target. This is a strict
+//     improvement over Stat but is not full forgery resistance: a hard link
+//     aliases its inode's owner, so a hard link to a dir-owner-owned file in a
+//     world-writable install dir would still pass. The directory is the trust
+//     anchor, so it is Stat'd normally.
 //   - There is a TOCTOU window between this check and acting on the file in
 //     the caller, and ownership gating is moot if the install directory is
-//     itself world-writable. Both only matter when an attacker already has
-//     write access to the install directory, whose worst case is exactly the
-//     local DoS this guard bounds.
+//     itself world-writable. The symlink, hard-link, and TOCTOU cases all
+//     require the attacker to already have write access to the install
+//     directory, whose worst case is exactly the local DoS this guard bounds;
+//     the real mitigation is keeping the install dir non-world-writable.
 func stopFileAuthorized(stopFilePath string) bool {
 	fi, err := os.Lstat(stopFilePath)
 	if err != nil {
