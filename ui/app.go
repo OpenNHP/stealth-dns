@@ -683,17 +683,13 @@ func (a *App) killStealthDNSProcess() (bool, error) {
 
 	switch goruntime.GOOS {
 	case "darwin":
-		// macOS: First try signal file method (no admin needed)
-		stopFilePath := filepath.Join(filepath.Dir(a.exePath), ".stealth-dns-stop")
-		wailsRuntime.LogInfo(a.ctx, "Creating stop signal file: "+stopFilePath)
-
-		stopFile, err := os.Create(stopFilePath)
+		// macOS: First try the authenticated signal-file method (no admin needed)
+		stopFilePath, err := writeStopRequest(filepath.Dir(a.exePath))
 		if err != nil {
-			wailsRuntime.LogWarning(a.ctx, "Failed to create stop signal file: "+err.Error())
+			wailsRuntime.LogWarning(a.ctx, "Failed to create authenticated stop request: "+err.Error())
 			// Fall back to kill method
 			return false, a.killMacOSProcess()
 		}
-		stopFile.Close()
 		wailsRuntime.LogInfo(a.ctx, "Stop signal file created, waiting for stealth-dns graceful shutdown...")
 
 		// Wait for process to exit (max 5 seconds)
@@ -766,11 +762,10 @@ func (a *App) killStealthDNSProcess() (bool, error) {
 		debugLog(fmt.Sprintf("UI exePath: %s", a.exePath))
 		debugLog(fmt.Sprintf("Creating stop signal file: %s", stopFilePath))
 
-		stopFile, err := os.Create(stopFilePath)
+		_, err := writeStopRequest(filepath.Dir(a.exePath))
 		if err != nil {
-			debugLog("ERROR: Failed to create stop signal file: " + err.Error())
+			debugLog("ERROR: Failed to create authenticated stop request: " + err.Error())
 		} else {
-			stopFile.Close()
 
 			// Verify the file was created
 			if _, statErr := os.Stat(stopFilePath); statErr != nil {
