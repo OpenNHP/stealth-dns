@@ -746,7 +746,6 @@ func (a *App) killStealthDNSProcess() (bool, error) {
 		// Method 1: Create stop signal file for graceful shutdown (NO ADMIN NEEDED)
 		// The signal file must be in the same directory as stealth-dns.exe
 		// stealth-dns uses os.Executable() to determine its directory
-		stopFilePath := filepath.Join(filepath.Dir(a.exePath), ".stealth-dns-stop")
 		debugLogPath := filepath.Join(filepath.Dir(a.exePath), "logs", "stop-debug.log")
 
 		// Create debug log
@@ -760,12 +759,12 @@ func (a *App) killStealthDNSProcess() (bool, error) {
 		}
 
 		debugLog(fmt.Sprintf("UI exePath: %s", a.exePath))
-		debugLog(fmt.Sprintf("Creating stop signal file: %s", stopFilePath))
 
-		_, err := writeStopRequest(filepath.Dir(a.exePath))
+		stopFilePath, err := writeStopRequest(filepath.Dir(a.exePath))
 		if err != nil {
 			debugLog("ERROR: Failed to create authenticated stop request: " + err.Error())
 		} else {
+			debugLog("Created authenticated stop request: " + stopFilePath)
 
 			// Verify the file was created
 			if _, statErr := os.Stat(stopFilePath); statErr != nil {
