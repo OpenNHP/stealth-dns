@@ -25,6 +25,13 @@ import (
 // rejected and Stop falls back to the existing taskkill/elevation path. The
 // exact owner-SID behavior under UAC has not been validated at runtime; treat
 // this path as best-effort hardening that never weakens security.
+//
+// As on Unix, there is a TOCTOU window before the caller acts on the file and
+// the check is moot if the install directory is world-writable; both require
+// the attacker to already have write access to the install directory, whose
+// worst case is the local DoS this guard bounds. Creating a symlink/reparse
+// point on Windows normally requires privilege, so the Unix Lstat hardening
+// has no direct analogue here.
 func stopFileAuthorized(stopFilePath string) bool {
 	fileOwner, err := ownerSID(stopFilePath)
 	if err != nil {

@@ -22,8 +22,18 @@ import (
 //
 // (A root attacker could forge ownership, but root can already signal the
 // daemon directly, so this changes nothing about the threat model.)
+//
+// Caveats, acceptable for this local-only, low-severity threat model:
+//   - We Lstat the sentinel (do not follow symlinks) so an attacker cannot
+//     point it at a dir-owner-owned file to forge a passing owner check. The
+//     directory is the trust anchor, so it is Stat'd normally.
+//   - There is a TOCTOU window between this check and acting on the file in
+//     the caller, and ownership gating is moot if the install directory is
+//     itself world-writable. Both only matter when an attacker already has
+//     write access to the install directory, whose worst case is exactly the
+//     local DoS this guard bounds.
 func stopFileAuthorized(stopFilePath string) bool {
-	fi, err := os.Stat(stopFilePath)
+	fi, err := os.Lstat(stopFilePath)
 	if err != nil {
 		return false
 	}
