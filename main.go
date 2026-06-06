@@ -152,19 +152,43 @@ func runApp() error {
 	signal.Notify(termCh, syscall.SIGTERM, os.Interrupt, syscall.SIGABRT)
 
 	// Listen for stop signal file (used by UI to send stop request without admin privileges)
-	// Works on both Windows and macOS/Linux
+	// Works on both Windows and macOS/Linux.
+	//
+	// Security: the daemon runs elevated (root/admin) but the sentinel lives in
+	// a shared, writable location. Honoring its mere existence would let ANY
+	// local user stop the daemon by dropping the file — a local denial of
+	// service. We instead only honor a file whose owner matches the owner of
+	// the install directory it sits in (see stopFileAuthorized). For the common
+	// per-user deployment (the release/ folder is extracted and owned by the
+	// desktop user the UI runs as), the UI's file is honored and a file created
+	// by any other local user is rejected. A root-owned system install is the
+	// one regression: the UI's file is then rejected too and Stop falls back to
+	// the existing elevation-based path in the UI (osascript/pkexec/taskkill).
 	go func() {
 		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
+		warnedUnauthorized := false
 		for {
 			select {
 			case <-ticker.C:
-				if _, err := os.Stat(stopFilePath); err == nil {
-					log.Println("Stop signal file detected, gracefully shutting down...")
-					os.Remove(stopFilePath)
-					stopCh <- struct{}{}
-					return
+				if _, err := os.Stat(stopFilePath); err != nil {
+					continue
 				}
+				if !stopFileAuthorized(stopFilePath) {
+					// Do not remove the file: the daemon could delete it (it is
+					// privileged), but doing so just invites a re-create loop,
+					// and an untrusted writer must not be able to drive daemon
+					// behavior. Residual cleanup happens at next startup.
+					if !warnedUnauthorized {
+						log.Printf("Ignoring stop signal file %q: owner does not match install directory owner (untrusted writer)\n", stopFilePath)
+						warnedUnauthorized = true
+					}
+					continue
+				}
+				log.Println("Stop signal file detected, gracefully shutting down...")
+				os.Remove(stopFilePath)
+				stopCh <- struct{}{}
+				return
 			case <-stopCh:
 				return
 			}
