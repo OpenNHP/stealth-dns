@@ -1,12 +1,16 @@
 package main
 
 import (
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -129,9 +133,28 @@ func runApp() error {
 
 	// Clean up any residual stop signal file
 	stopFilePath := filepath.Join(exeDirPath, ".stealth-dns-stop")
+	stopTokenPath := filepath.Join(exeDirPath, ".stealth-dns-stop-token")
 	log.Printf("StealthDNS exe path: %s\n", exeFilePath)
 	log.Printf("StealthDNS stop signal file path: %s\n", stopFilePath)
 	os.Remove(stopFilePath)
+	os.Remove(stopTokenPath)
+
+	// Publish a per-run secret the (non-root) UI must echo back to request a
+	// shutdown. Without this, any local process that can write to the install
+	// directory could stop the daemon merely by creating the stop file
+	// (nhp#1150 item 1). The token is held in memory and never re-read from
+	// disk, so an attacker who can overwrite the token file still cannot learn
+	// the secret. The on-disk copy is restricted to the install dir's owner so
+	// only the user running the UI (and root) can read it; an empty token
+	// disables the file-based stop path entirely (the UI then falls back to its
+	// privileged stop path).
+	stopToken, err := writeStopToken(stopTokenPath, exeDirPath)
+	if err != nil {
+		log.Printf("StealthDNS: stop-token unavailable, file-based stop disabled (UI will use its privileged stop path): %v\n", err)
+		stopToken = ""
+	} else {
+		defer os.Remove(stopTokenPath)
+	}
 
 	err = cert.Install(false)
 	if err != nil {
@@ -151,59 +174,30 @@ func runApp() error {
 	termCh := make(chan os.Signal, 1)
 	signal.Notify(termCh, syscall.SIGTERM, os.Interrupt, syscall.SIGABRT)
 
-	// Listen for stop signal file (used by UI to send stop request without admin privileges)
-	// Works on both Windows and macOS/Linux.
-	//
-	// Security (canonical rationale for stopFileAuthorized in stop_authz_*.go):
-	// the daemon runs elevated (root/admin) but the sentinel lives in a shared,
-	// writable location. Honoring its mere existence would let ANY local user
-	// stop the daemon by dropping the file — a local denial of service. We
-	// instead only honor a file whose owner matches the owner of the install
-	// directory it sits in (stopFileAuthorized, which fails closed on any lookup
-	// error). For the common per-user deployment (the release/ folder is
-	// extracted and owned by the desktop user the UI runs as), the UI's file is
-	// honored and a file created by any other local user is rejected. A
-	// root-owned system install is the one regression: the UI's file is then
-	// rejected too and Stop falls back to the existing elevation-based path in
-	// the UI (osascript/pkexec/taskkill).
-	//
-	// Residual caveats, acceptable for this local-only, low-severity model: a
-	// hard link aliases its target's owner, there is a TOCTOU window before we
-	// act on the file, and the gating is moot if the install dir is itself
-	// world-writable. All require the attacker to already have install-dir write
-	// access — whose worst case is exactly the local DoS this guard bounds — so
-	// the real mitigation is keeping the install dir non-world-writable.
+	// Listen for an authenticated stop request file (used by the UI to stop the
+	// root daemon without an admin prompt). Works on macOS/Windows. The request
+	// file must contain the per-run token published above; an unauthenticated
+	// or token-less file is ignored. nhp#1150 item 1.
 	go func() {
 		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
-		warnedUnauthorized := false
 		for {
 			select {
 			case <-ticker.C:
-				// This existence check is load-bearing, not redundant with the
-				// re-stat inside stopFileAuthorized: it distinguishes "file
-				// absent" (silent) from "present but unauthorized" (warn once).
-				if _, err := os.Stat(stopFilePath); err != nil {
-					// File gone: clear the latch so a remove-and-redrop attack
-					// re-warns, while a persistent file still warns only once.
-					warnedUnauthorized = false
-					continue
+				data, readErr := os.ReadFile(stopFilePath)
+				if readErr != nil {
+					continue // not present yet (or unreadable) — keep polling
 				}
-				if !stopFileAuthorized(stopFilePath) {
-					// Do not remove the file: the daemon could delete it (it is
-					// privileged), but doing so just invites a re-create loop,
-					// and an untrusted writer must not be able to drive daemon
-					// behavior. Residual cleanup happens at next startup.
-					if !warnedUnauthorized {
-						log.Printf("Ignoring stop signal file %q: owner does not match install directory owner (untrusted writer)\n", stopFilePath)
-						warnedUnauthorized = true
-					}
-					continue
-				}
-				log.Println("Stop signal file detected, gracefully shutting down...")
+				// Always remove the request file, valid or not, so a bogus file
+				// can't wedge the loop or be retried indefinitely.
 				os.Remove(stopFilePath)
-				stopCh <- struct{}{}
-				return
+				presented := strings.TrimSpace(string(data))
+				if stopToken != "" && subtle.ConstantTimeCompare([]byte(presented), []byte(stopToken)) == 1 {
+					log.Println("Authenticated stop request received, gracefully shutting down...")
+					stopCh <- struct{}{}
+					return
+				}
+				log.Println("Ignoring stop request file: missing or invalid token")
 			case <-stopCh:
 				return
 			}
@@ -220,6 +214,29 @@ func runApp() error {
 
 	p.Stop()
 	return nil
+}
+
+// writeStopToken generates a high-entropy per-run token, writes it next to the
+// executable with 0600 permissions, and restricts the file to the owner of the
+// install directory so only the user running the UI (and root) can read it.
+// The returned token is kept in memory by the caller and used to authenticate
+// stop requests; the on-disk copy is never trusted for verification.
+func writeStopToken(tokenPath, dir string) (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", fmt.Errorf("generate stop token: %w", err)
+	}
+	token := hex.EncodeToString(buf)
+	if err := os.WriteFile(tokenPath, []byte(token), 0o600); err != nil {
+		return "", fmt.Errorf("write stop token: %w", err)
+	}
+	// Best-effort: hand read access to the (non-root) UI user that owns the
+	// install directory. On failure the file stays root-only and the UI falls
+	// back to its privileged stop path rather than silently weakening perms.
+	if err := restrictTokenToDirOwner(tokenPath, dir); err != nil {
+		log.Printf("StealthDNS: could not restrict stop-token to install-dir owner: %v\n", err)
+	}
+	return token, nil
 }
 
 func isAdminPermission() bool {
