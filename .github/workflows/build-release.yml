@@ -90,7 +90,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p release/etc release/sdk
-          go build -trimpath -ldflags="-w -s" -o release/stealth-dns.exe ./main.go
+          go build -trimpath -ldflags="-w -s" -o release/stealth-dns.exe .
           cp -r etc/* release/etc/
           cp sdk/nhp-agent.dll release/sdk/ 2>/dev/null || true
 
