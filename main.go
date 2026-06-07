@@ -152,19 +152,58 @@ func runApp() error {
 	signal.Notify(termCh, syscall.SIGTERM, os.Interrupt, syscall.SIGABRT)
 
 	// Listen for stop signal file (used by UI to send stop request without admin privileges)
-	// Works on both Windows and macOS/Linux
+	// Works on both Windows and macOS/Linux.
+	//
+	// Security (canonical rationale for stopFileAuthorized in stop_authz_*.go):
+	// the daemon runs elevated (root/admin) but the sentinel lives in a shared,
+	// writable location. Honoring its mere existence would let ANY local user
+	// stop the daemon by dropping the file — a local denial of service. We
+	// instead only honor a file whose owner matches the owner of the install
+	// directory it sits in (stopFileAuthorized, which fails closed on any lookup
+	// error). For the common per-user deployment (the release/ folder is
+	// extracted and owned by the desktop user the UI runs as), the UI's file is
+	// honored and a file created by any other local user is rejected. A
+	// root-owned system install is the one regression: the UI's file is then
+	// rejected too and Stop falls back to the existing elevation-based path in
+	// the UI (osascript/pkexec/taskkill).
+	//
+	// Residual caveats, acceptable for this local-only, low-severity model: a
+	// hard link aliases its target's owner, there is a TOCTOU window before we
+	// act on the file, and the gating is moot if the install dir is itself
+	// world-writable. All require the attacker to already have install-dir write
+	// access — whose worst case is exactly the local DoS this guard bounds — so
+	// the real mitigation is keeping the install dir non-world-writable.
 	go func() {
 		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
+		warnedUnauthorized := false
 		for {
 			select {
 			case <-ticker.C:
-				if _, err := os.Stat(stopFilePath); err == nil {
-					log.Println("Stop signal file detected, gracefully shutting down...")
-					os.Remove(stopFilePath)
-					stopCh <- struct{}{}
-					return
+				// This existence check is load-bearing, not redundant with the
+				// re-stat inside stopFileAuthorized: it distinguishes "file
+				// absent" (silent) from "present but unauthorized" (warn once).
+				if _, err := os.Stat(stopFilePath); err != nil {
+					// File gone: clear the latch so a remove-and-redrop attack
+					// re-warns, while a persistent file still warns only once.
+					warnedUnauthorized = false
+					continue
 				}
+				if !stopFileAuthorized(stopFilePath) {
+					// Do not remove the file: the daemon could delete it (it is
+					// privileged), but doing so just invites a re-create loop,
+					// and an untrusted writer must not be able to drive daemon
+					// behavior. Residual cleanup happens at next startup.
+					if !warnedUnauthorized {
+						log.Printf("Ignoring stop signal file %q: owner does not match install directory owner (untrusted writer)\n", stopFilePath)
+						warnedUnauthorized = true
+					}
+					continue
+				}
+				log.Println("Stop signal file detected, gracefully shutting down...")
+				os.Remove(stopFilePath)
+				stopCh <- struct{}{}
+				return
 			case <-stopCh:
 				return
 			}
