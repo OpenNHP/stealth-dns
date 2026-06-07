@@ -92,7 +92,7 @@ build:
 	@echo "[StealthDNS] Building package..."
 	@echo "[StealthDNS] Version: $(BASE_VERSION) (Build: $(BUILD_NUMBER), Commit: $(COMMIT_ID))"
 	@mkdir -p ./release/etc/cert ./release/sdk
-	go build -trimpath -ldflags="-w -s $(VERSION_LDFLAGS)" -v -o ./release/stealth-dns ./main.go && \
+	go build -trimpath -ldflags="-w -s $(VERSION_LDFLAGS)" -v -o ./release/stealth-dns . && \
 	cp ./etc/*.toml ./release/etc/ && \
 	cp ./sdk/nhp-agent.* ./release/sdk/ 2>/dev/null || true && \
 	cp ./etc/cert/rootCA.pem ./release/etc/cert/ 2>/dev/null || true
@@ -164,6 +164,10 @@ else ifeq ($(OS_NAME), darwin)
 	rm -rf ./release/stealthdns-ui.app
 	cp -r ./ui/build/bin/stealthdns-ui.app ./release/ 2>/dev/null || \
 		cp ./ui/build/bin/stealthdns-ui ./release/
+	@# Copy stealth-dns binary and resources into .app bundle for UI to find
+	cp ./release/stealth-dns ./release/stealthdns-ui.app/Contents/MacOS/ 2>/dev/null || true
+	cp -r ./release/etc ./release/stealthdns-ui.app/Contents/MacOS/ 2>/dev/null || true
+	cp -r ./release/sdk ./release/stealthdns-ui.app/Contents/MacOS/ 2>/dev/null || true
 	@# Don't restore wailsjs/ - it contains auto-generated bindings including GetVersion
 	@# cd ui/frontend && git checkout wailsjs/ 2>/dev/null || true
 else
