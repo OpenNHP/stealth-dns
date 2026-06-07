@@ -164,6 +164,10 @@ else ifeq ($(OS_NAME), darwin)
 	rm -rf ./release/stealthdns-ui.app
 	cp -r ./ui/build/bin/stealthdns-ui.app ./release/ 2>/dev/null || \
 		cp ./ui/build/bin/stealthdns-ui ./release/
+	@# Copy stealth-dns binary and resources into .app bundle for UI to find
+	cp ./release/stealth-dns ./release/stealthdns-ui.app/Contents/MacOS/ 2>/dev/null || true
+	cp -r ./release/etc ./release/stealthdns-ui.app/Contents/MacOS/ 2>/dev/null || true
+	cp -r ./release/sdk ./release/stealthdns-ui.app/Contents/MacOS/ 2>/dev/null || true
 	@# Don't restore wailsjs/ - it contains auto-generated bindings including GetVersion
 	@# cd ui/frontend && git checkout wailsjs/ 2>/dev/null || true
 else
