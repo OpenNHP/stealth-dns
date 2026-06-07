@@ -77,7 +77,7 @@ build:
 	@echo "[StealthDNS] Building package..."
 	@echo "[StealthDNS] Version: $(BASE_VERSION) (Build: $(BUILD_NUMBER), Commit: $(COMMIT_ID))"
 	@mkdir -p ./release/etc/cert ./release/sdk
-	go build -trimpath -ldflags="-w -s $(VERSION_LDFLAGS)" -v -o ./release/stealth-dns ./main.go && \
+	go build -trimpath -ldflags="-w -s $(VERSION_LDFLAGS)" -v -o ./release/stealth-dns . && \
 	cp ./etc/*.toml ./release/etc/ && \
 	cp ./sdk/nhp-agent.* ./release/sdk/ 2>/dev/null || true && \
 	cp ./etc/cert/rootCA.pem ./release/etc/cert/ 2>/dev/null || true
